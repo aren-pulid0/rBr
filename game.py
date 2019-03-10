@@ -1,4 +1,5 @@
 import time
+import random
 from threading import Thread
 from tkinter import Tk
 from tkinter import Canvas
@@ -83,14 +84,14 @@ class Obstacle():
 		self.y = OBSTACLE_INITIAL_Y
 		self.xdirection = 0
 		self.ydirection = 1
-		self.movement = None
+		self.movement = 'DOWNWARDS'
 
 	def move(self,y):
 		"""Recieves the amount of pixels to move in absolute value"""
 		self.y += (y * self.ydirection)
 	
 	def __str__(self):
-		return 'OBSTACLE nº1: X: {}, Y: {}, DireccionY: {}, Movement: {}'.format(self.x,self.y,self.ydirection, self.movement)
+		return 'OBSTACLE: X: {}, Y: {}, DireccionY: {}, Movement: {}'.format(self.x,self.y,self.ydirection, self.movement)
 
 class Drawer():
 
@@ -113,8 +114,13 @@ class Drawer():
 		self.gameMap.create_image(SHURIKEN_INITIAL_X,SHURIKEN_INITIAL_Y, image=self.image, tag='shuriken')
 		self.gameMap.update()
 	
-	def drawObstacle(self):
-		self.gameMap.create_rectangle(OBSTACLE_INITIAL_X-5, OBSTACLE_INITIAL_Y-20, OBSTACLE_INITIAL_X+5, OBSTACLE_INITIAL_Y+20, fill="blue", tag="obstacle")
+	def drawObstacles(self,obstacles):
+		i = 0
+		for obstacle in obstacles:
+			tag = "obstacle" + str(i)
+			self.gameMap.create_rectangle(obstacle.x-5, obstacle.y-20, obstacle.x+5, obstacle.y+20, fill="blue", tag=tag)
+			i += 1
+
 
 class EventListener(Thread):
 
@@ -149,17 +155,25 @@ def eventHandler(eventListener,event):
 def setupGame(game_map):
 	# Init objects required for the game
 	shuriken = Shuriken()
-	obstacle = Obstacle()
-	drawer = Drawer(game_map)
+	
 
+	obstacles = []
+	for i in range(0,2):
+		obstacle = Obstacle()
+		obstacle.x = random.randint(WALL_LEFT+5, WALL_RIGHT-5)
+		obstacle.y = random.randint(WALL_TOP+30, WALL_BOTTOM/2)
+		obstacles.append(obstacle)
+		
+	
+	drawer = Drawer(game_map)
+	drawer.drawObstacles(obstacles)
 	drawer.drawWalls()
 	drawer.drawShuriken()
-	drawer.drawObstacle()
 
-	game_loop = Thread(target=GAME_LOOP, args=(shuriken, obstacle, drawer), name='GameLoopThread')
+	game_loop = Thread(target=GAME_LOOP, args=(shuriken, obstacles, drawer), name='GameLoopThread')
 	game_loop.start()
 
-def GAME_LOOP(shuriken, obstacle, drawer, pause=False ):
+def GAME_LOOP(shuriken, obstacles, drawer, pause=False ):
 	# This is the main game loop:
 	# 1-Checks for events
 	# 2-Moves corresponding objects -> Also checks collisions
@@ -177,11 +191,6 @@ def GAME_LOOP(shuriken, obstacle, drawer, pause=False ):
 				moveShuriken_left(shuriken)
 				drawer.move(shuriken,'shuriken',SHURIKEN_MOV_X, SHURIKEN_MOV_Y)
 
-			# check collision
-			if (checkCollision(shuriken,obstacle)):
-				print("COLISION")
-				break
-
 			### DEBUG
 			#print(shuriken)
 			### DEBUG
@@ -195,25 +204,30 @@ def GAME_LOOP(shuriken, obstacle, drawer, pause=False ):
 				moveShuriken_right(shuriken)
 				drawer.move(shuriken,'shuriken',SHURIKEN_MOV_X, SHURIKEN_MOV_Y)
 
-			if (checkCollision(shuriken,obstacle)):
-				print("COLISION")
-				break
-
-
 			### DEBUG
 			#print(shuriken)
 			### DEBUG
 		
 		#OBSTACLES
+		i=0
+		for obstacle in obstacles:
+			
+			moveObstacle(obstacle)
+			drawer.move(obstacle,'obstacle'+str(i),OBSTACLE_MOV_X, OBSTACLE_MOV_Y)
+			print('Number {}, {}'.format(i,obstacle))
+			i += 1
 
-		moveObstacle(obstacle)
-		drawer.move(obstacle,'obstacle',OBSTACLE_MOV_X, OBSTACLE_MOV_Y)
+		# check collision
+		for obstacle in obstacles:
+			if (checkCollision(shuriken,obstacle)):
+				print("COLISION")
+				time.sleep(2)
 
+		time.sleep(33/1000)
+		
 		###DEBUG
-		print(obstacle)
+		#print(obstacle)
 		###DEBUG
-
-		time.sleep(50/1000)
 
 def checkCollision(shuriken, obstacle):
 	colisionX = False
@@ -224,21 +238,20 @@ def checkCollision(shuriken, obstacle):
 
 		if (shuriken.x + 5 == obstacle.x + x) or (shuriken.x - 5 == obstacle.x + x):
 			colisionX = True
-		
 			###DEBUG
 			#print ("Colision X Value")
 			###DEBUG
-	
+
 		for y in range(-20,20):
 
-			if (shuriken.y + 5 == obstacle.y + y) or (shuriken.y + -5 == obstacle.y + y):
+			if (shuriken.y + x == obstacle.y + y) or (shuriken.y - x == obstacle.y + y):
 				colisionY = True
 
 				###DEBUG
 				#print ("Colision Y Value")
 				###DEBUG
 	
-	if colisionX == True and colisionY == True:
+	if (colisionX == True and colisionY == True):
 		return True
 
 def moveShuriken_left(shuriken, xdirection=-1, ydirection=-1):
@@ -268,18 +281,16 @@ def moveShuriken_right(shuriken, xdirection=1, ydirection=-1):
 	
 def moveObstacle(obstacle):
 
-	if obstacle.y ==  WALL_TOP:
+	if obstacle.y - 20 <=  WALL_TOP:
 		obstacle.movement = 'DOWNWARDS'
 		obstacle.ydirection = 1
 
-	if obstacle.y + 20 == WALL_BOTTOM:
+	if obstacle.y + 20 >= WALL_BOTTOM:
 		obstacle.movement = 'UPWARDS'
 		obstacle.ydirection = -1
 
 	obstacle.move(OBSTACLE_MOV_Y)
 	
-
-
 class RunBladeRun(Frame):
 
 	def __init__(self, master=None):
