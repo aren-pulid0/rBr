@@ -23,12 +23,12 @@ class Obstacle(gameModel):
         """Initialices a new Obstacle and assigns Obstacle_i tag"""
         super().__init__()
         
-        if ObstacleNumber == None:
+        if Obstacle.ObstacleNumber == None:
             self.tag = 'Obstacle_1'
-            ObstacleNumber = 1
+            Obstacle.ObstacleNumber = 1
         else:
-            ObstacleNumber += 1
-            self.tag = 'Obstacle_' + str(ObstacleNumber)
+            Obstacle.ObstacleNumber += 1
+            self.tag = 'Obstacle_' + str(Obstacle.ObstacleNumber)
     
     def setObstaclePosition(self, x, y):
         self.x = x
@@ -40,3 +40,5 @@ class Obstacle(gameModel):
     
     def __str__(self):
         return '{}, X: {}, Y: {}, xDir: {}, yDir: {}'.format(self.tag, self.x, self.y, self.xdirection, self.ydirection)
+
+
